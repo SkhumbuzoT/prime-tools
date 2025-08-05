@@ -194,7 +194,7 @@ def create_pdf_export(inputs, results, cashflow_analysis):
     
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=letter)
-    styles = getSampleStyleBook()
+    styles = getSampleStyleSheet()
     story = []
     
     # Title
