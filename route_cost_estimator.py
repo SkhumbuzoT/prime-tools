@@ -150,7 +150,7 @@ st.markdown("""
         transition: all 0.2s ease;
         margin-top: 1rem;
     }
-    
+
     .stButton button:hover {
         transform: translateY(-2px);
         box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
@@ -561,14 +561,14 @@ def main():
     
     # Sidebar for inputs
     with col1:
-        with st.container():
-            st.markdown("""
-            <div class="sidebar">
-                <div class="sidebar-title">
-                    <i class="fas fa-calculator"></i>
-                    <span>Trip Calculator</span>
-                </div>
-            """, unsafe_allow_html=True)
+       # with st.container():
+        #    st.markdown("""
+         #   <div class="sidebar">
+          #      <div class="sidebar-title">
+           #         <i class="fas fa-calculator"></i>
+            #        <span>Trip Calculator</span>
+             #   </div>
+            #""", unsafe_allow_html=True)
             
             # Route Information
             st.markdown("**Route Information**")
@@ -737,39 +737,6 @@ def main():
                         <div class="metric-label">Opportunity Cost</div>
                     </div>
                     """, unsafe_allow_html=True)
-            
-            # What-if Simulator
-            with st.expander("What-If Simulator", expanded=False):
-                sim_col1, sim_col2 = st.columns(2)
-                
-                with sim_col1:
-                    st.write("**Adjust Parameters:**")
-                    sim_fuel_price = st.slider("Fuel Price (R/litre)", 15.0, 35.0, fuel_price, 0.5, key="sim_fuel")
-                    sim_rate_per_ton = st.slider("Rate per Ton (R/ton)", 0.0, rate_per_ton * 2, rate_per_ton, 10.0, key="sim_rate")
-                    sim_load = st.slider("Load Weight (tons)", 0.1, load * 2, load, 0.1, key="sim_load")
-                    sim_toll_fees = st.slider("Toll Fees (R)", 0.0, toll_fees * 2 if toll_fees > 0 else 1000.0, toll_fees, 50.0, key="sim_toll")
-                
-                with sim_col2:
-                    # Calculate scenario results
-                    sim_inputs = inputs.copy()
-                    sim_inputs.update({
-                        'fuel_price': sim_fuel_price,
-                        'rate_per_ton': sim_rate_per_ton,
-                        'load': sim_load,
-                        'toll_fees': sim_toll_fees
-                    })
-                    
-                    sim_results = calculate_costs_and_profit(sim_inputs)
-                    
-                    st.write("**Scenario Results:**")
-                    st.metric("Revenue", f"R {sim_results['total_revenue']:,.2f}", 
-                             delta=f"R {sim_results['total_revenue'] - results['total_revenue']:,.2f}")
-                    st.metric("Cost", f"R {sim_results['total_cost']:,.2f}", 
-                             delta=f"R {sim_results['total_cost'] - results['total_cost']:,.2f}")
-                    st.metric("Profit", f"R {sim_results['profit']:,.2f}", 
-                             delta=f"R {sim_results['profit'] - results['profit']:,.2f}")
-                    st.metric("Margin", f"{sim_results['profit_margin']:.1f}%", 
-                             delta=f"{sim_results['profit_margin'] - results['profit_margin']:.1f}%")
             
             # Export Options
             st.markdown("### Export Options")
