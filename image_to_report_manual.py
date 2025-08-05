@@ -3,6 +3,7 @@ import pandas as pd
 import io
 import re
 from datetime import datetime
+import pytesseract
 from PIL import Image
 from typing import Optional, Dict, Literal
 
