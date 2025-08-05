@@ -304,7 +304,7 @@ def main():
         # Route Information
         st.subheader("🗺️ Route Information")
         loading_point = st.text_input("Loading Point", placeholder="e.g., Johannesburg")
-        offloading_point = st.text_(placeholder="e.g., Cape Town")
+        offloading_point = st.text_input("Offloading Point", placeholder="e.g., Cape Town") 
         distance = st.number_input("Distance (km)", min_value=0.0, step=1.0, help="Total distance for the trip")
         
         # Load Information
