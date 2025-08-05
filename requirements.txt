@@ -1,8 +1,5 @@
 streamlit
-paddleocr
-paddlepaddle
 pandas
-lxml
+numpy
+reportlab
 xlsxwriter
-opencv-python<4.9
-
