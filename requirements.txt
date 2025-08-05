@@ -5,4 +5,5 @@ pandas
 lxml
 xlsxwriter
 opencv-python<4.9
+reportlab
 
