@@ -559,42 +559,58 @@ def main():
     # Main layout
     col1, col2 = st.columns([1, 2], gap="large")
     
-    # Sidebar for inputs
     with col1:
-       # with st.container():
-        #    st.markdown("""
-         #   <div class="sidebar">
-          #      <div class="sidebar-title">
-           #         <i class="fas fa-calculator"></i>
-            #        <span>Trip Calculator</span>
-             #   </div>
-            #""", unsafe_allow_html=True)
-            
-            # Route Information
-            st.markdown("**Route Information**")
-            loading_point = st.text_input("Loading Point", placeholder="e.g., Johannesburg", key="loading_point")
-            offloading_point = st.text_input("Offloading Point", placeholder="e.g., Cape Town", key="offloading_point")
+        # Sidebar container with compact styling
+        st.markdown("""
+        <style>
+            .sidebar-section {
+                margin-bottom: 0.5rem;
+            }
+            .sidebar-section h3 {
+                margin-bottom: 0.5rem;
+                font-size: 1rem;
+            }
+            .stTextInput, .stNumberInput, .stSelectbox {
+                margin-bottom: 0.5rem;
+            }
+        </style>
+        """, unsafe_allow_html=True)
+        
+        # Route Information - compact section
+        with st.container():
+            st.markdown("### Route Information", help="Details about the transportation route")
+            cols = st.columns(2)
+            with cols[0]:
+                loading_point = st.text_input("Loading Point", placeholder="e.g., Johannesburg", key="loading_point")
+            with cols[1]:
+                offloading_point = st.text_input("Offloading Point", placeholder="e.g., Cape Town", key="offloading_point")
             distance = st.number_input("Distance (km)", min_value=0.0, step=1.0, help="Total distance for the trip", key="distance")
-            
-            # Load Information
-            st.markdown("**Load Information**")
+        
+        # Load Information - compact section
+        with st.container():
+            st.markdown("### Load Information", help="Details about the cargo")
             load = st.number_input("Load Weight (tons)", min_value=0.0, step=0.1, help="Weight of cargo in tons", key="load")
-            
-            # Cost Inputs
-            st.markdown("**Cost Parameters**")
-            fuel_price = st.number_input("Fuel Price (R/litre)", min_value=0.0, value=23.50, step=0.10, key="fuel_price")
-            toll_fees = st.number_input("Toll Fees (R)", min_value=0.0, step=1.0, help="Total toll costs for the route", key="toll_fees")
-            turnaround_time = st.number_input("Turnaround Time (hours)", min_value=0.0, step=0.5, help="Total time including loading, driving, and offloading", key="turnaround_time")
-            
-            # Revenue Parameters
-            st.markdown("**Revenue Parameters**")
-            rate_per_ton = st.number_input("Rate per Ton (R/ton)", min_value=0.0, step=1.0, help="What you're charging per ton", key="rate_per_ton")
+        
+        # Cost Inputs - compact section
+        with st.container():
+            st.markdown("### Cost Parameters", help="Cost factors for the trip")
+            cols = st.columns(2)
+            with cols[0]:
+                fuel_price = st.number_input("Fuel Price (R/litre)", min_value=0.0, value=23.50, step=0.10, key="fuel_price")
+            with cols[1]:
+                toll_fees = st.number_input("Toll Fees (R)", min_value=0.0, step=1.0, help="Total toll costs", key="toll_fees")
+            turnaround_time = st.number_input("Turnaround Time (hours)", min_value=0.0, step=0.5, help="Total time including loading, driving, offloading", key="turnaround_time")
+        
+        # Revenue Parameters - compact section
+        with st.container():
+            st.markdown("### Revenue Parameters", help="Revenue and payment details")
+            rate_per_ton = st.number_input("Rate per Ton (R/ton)", min_value=0.0, step=1.0, help="Charging rate per ton", key="rate_per_ton")
             payment_terms = st.selectbox("Payment Terms", ["Cash", "Daily", "Weekly", "Monthly"], key="payment_terms")
-            
-            # Calculate button
-            calculate_button = st.button("Calculate Route Economics", type="primary", use_container_width=True)
-            
-            st.markdown("</div>", unsafe_allow_html=True)  # Close sidebar container
+        
+        # Calculate button with better spacing
+        st.markdown("<div style='margin-top: 1.5rem;'>", unsafe_allow_html=True)
+        calculate_button = st.button("Calculate Route Economics", type="primary", use_container_width=True)
+        
     
     # Main content area
     with col2:
