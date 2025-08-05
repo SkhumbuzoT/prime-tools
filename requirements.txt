@@ -4,3 +4,5 @@ paddlepaddle
 pandas
 lxml
 xlsxwriter
+opencv-python<4.9
+
