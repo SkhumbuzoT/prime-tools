@@ -136,8 +136,8 @@ def main():
     
     # Professional Sidebar with Organized Inputs
     with st.sidebar:
-        # Company Logo Placeholder
-        st.image("https://via.placeholder.com/250x80?text=Your+Logo", use_column_width=True)
+        # Company Logo Placeholder - updated to use_container_width
+        st.image("https://via.placeholder.com/250x80?text=Your+Logo", use_container_width=True)
         
         # Version and Last Updated
         st.caption("v2.1.0 | Last Updated: August 2023")
