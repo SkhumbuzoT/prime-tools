@@ -404,7 +404,7 @@ def main():
                         st.write("**Operational Efficiency**")
                         st.write("- Reduce empty miles by 10% (+R{:.2f})".format(revenue_per_trip * 0.10))
                         st.write("- Improve fuel efficiency to {:.1f} km/L (+R{:.2f})".format(
-                            fuel_efficiency + 0.3, (distance * 2 * fuel_price * (1/fuel_efficiency - 1/(fuel_efficiency+0.3)))
+                            fuel_efficiency + 0.3, (distance * 2 * fuel_price * (1/fuel_efficiency - 1/(fuel_efficiency+0.3)))))
                         
                     with cols[1]:
                         st.write("**Financial Optimization**")
