@@ -1,836 +1,315 @@
 import streamlit as st
 import pandas as pd
-import numpy as np
+import plotly.express as px
+import plotly.graph_objects as go
 from datetime import datetime, timedelta
-import io
-from reportlab.lib.pagesizes import letter
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib import colors
-from reportlab.lib.units import inch
-import xlsxwriter
+import numpy as np
 
 # Page configuration
 st.set_page_config(
-    page_title="Route Cost Estimator - Prime Chain Solutions",
+    page_title="LOI Profitability Calculator",
     page_icon="🚛",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-# Custom CSS with the new design
+# Custom CSS for modern styling
 st.markdown("""
 <style>
-    :root {
-        --primary: #2563eb;
-        --primary-light: #3b82f6;
-        --primary-dark: #1d4ed8;
-        --secondary: #10b981;
-        --secondary-light: #34d399;
-        --secondary-dark: #059669;
-        --accent: #f59e0b;
-        --accent-light: #fbbf24;
-        --accent-dark: #d97706;
-        --dark: #1e293b;
-        --dark-light: #334155;
-        --light: #f8fafc;
-        --light-dark: #e2e8f0;
-        --danger: #ef4444;
-        --danger-light: #f87171;
-        --success: #10b981;
-        --success-light: #34d399;
-        --warning: #f59e0b;
-        --warning-light: #fbbf24;
-    }
-    
-    * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
-    }
-    
-    body {
-        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-        color: var(--dark);
-        line-height: 1.6;
-        background: var(--light);
-    }
-    
-    /* Header */
-    .header {
-        background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
-        color: white;
-        padding: 2rem 0 4rem;
-        position: relative;
-        overflow: hidden;
-        margin-bottom: -2rem;
-        border-radius: 0 0 20px 20px;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
-    }
-    
-    .header-content {
-        position: relative;
-        z-index: 2;
-        text-align: center;
-        max-width: 800px;
-        margin: 0 auto;
-        padding: 0 1rem;
-    }
-    
-    .header h1 {
+    .main-header {
         font-size: 2.5rem;
-        font-weight: 800;
-        margin-bottom: 1rem;
-        line-height: 1.2;
-    }
-    
-    .header p {
-        font-size: 1.1rem;
-        opacity: 0.9;
-        margin-bottom: 1.5rem;
-    }
-    
-    /* Main container */
-    .main-container {
-        max-width: 1200px;
-        margin: 0 auto;
-        padding: 0 1rem;
-    }
-    
-    /* Sidebar */
-    .sidebar {
-        background: white;
-        border-radius: 12px;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
-        padding: 1.5rem;
+        font-weight: 700;
+        color: #1f2937;
+        text-align: center;
         margin-bottom: 2rem;
     }
     
-    .sidebar-title {
-        font-size: 1.25rem;
-        font-weight: 700;
-        color: var(--primary);
-        margin-bottom: 1.5rem;
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-    }
-    
-    /* Form elements */
-    .stTextInput input, 
-    .stNumberInput input,
-    .stSelectbox select {
-        width: 100%;
-        padding: 0.75rem 1rem;
-        border: 1px solid var(--light-dark);
-        border-radius: 8px;
-        font-size: 0.9rem;
-        transition: all 0.2s ease;
-    }
-    
-    .stTextInput input:focus, 
-    .stNumberInput input:focus,
-    .stSelectbox select:focus {
-        outline: none;
-        border-color: var(--primary);
-        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
-    }
-    
-    /* Button */
-    .stButton button {
-        width: 100%;
-        background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
-        color: white;
-        border: none;
-        padding: 0.75rem 1rem;
-        border-radius: 8px;
-        font-size: 1rem;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.2s ease;
-        margin-top: 1rem;
-    }
-
-    .stButton button:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
-    }
-    
-    /* Cards */
-    .card {
-        background: white;
-        border-radius: 12px;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+    .metric-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         padding: 1.5rem;
-        margin-bottom: 1.5rem;
+        border-radius: 15px;
+        color: white;
+        text-align: center;
+        margin: 1rem 0;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.1);
     }
     
-    .card-title {
-        font-size: 1.1rem;
-        font-weight: 700;
-        color: var(--dark);
-        margin-bottom: 1rem;
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-    }
-    
-    /* Metrics */
-    .metric {
-        display: flex;
-        flex-direction: column;
-        gap: 0.25rem;
-    }
-    
-    .metric-value {
-        font-size: 1.5rem;
-        font-weight: 800;
-        color: var(--primary);
-    }
-    
-    .metric-label {
-        font-size: 0.85rem;
-        color: var(--dark-light);
-        font-weight: 600;
-    }
-    
-    /* Profit indicators */
     .profit-positive {
-        color: var(--success);
+        background: linear-gradient(135deg, #4ade80 0%, #22c55e 100%);
     }
     
     .profit-negative {
-        color: var(--danger);
+        background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
     }
     
-    /* Risk indicators */
-    .risk-indicator {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.5rem;
-        padding: 0.25rem 0.75rem;
-        border-radius: 20px;
-        font-size: 0.8rem;
-        font-weight: 600;
-    }
-    
-    .risk-low {
-        background: rgba(16, 185, 129, 0.1);
-        color: var(--success);
-    }
-    
-    .risk-medium {
-        background: rgba(245, 158, 11, 0.1);
-        color: var(--warning);
-    }
-    
-    .risk-high {
-        background: rgba(239, 68, 68, 0.1);
-        color: var(--danger);
-    }
-    
-    /* Table */
-    .dataframe {
-        width: 100%;
-        border-collapse: collapse;
-    }
-    
-    .dataframe th {
-        background: var(--primary);
-        color: white;
-        font-weight: 600;
-        padding: 0.5rem;
-        text-align: left;
-    }
-    
-    .dataframe td {
-        padding: 0.5rem;
-        border-bottom: 1px solid var(--light-dark);
-    }
-    
-    .dataframe tr:nth-child(even) {
-        background: var(--light);
-    }
-    
-    /* Alert boxes */
-    .alert {
+    .info-box {
+        background: #f8fafc;
         padding: 1rem;
+        border-left: 4px solid #3b82f6;
         border-radius: 8px;
-        margin-bottom: 1rem;
-        display: flex;
-        align-items: flex-start;
-        gap: 1rem;
+        margin: 1rem 0;
     }
     
-    .alert-success {
-        background: rgba(16, 185, 129, 0.1);
-        border-left: 4px solid var(--success);
-    }
-    
-    .alert-warning {
-        background: rgba(245, 158, 11, 0.1);
-        border-left: 4px solid var(--warning);
-    }
-    
-    .alert-danger {
-        background: rgba(239, 68, 68, 0.1);
-        border-left: 4px solid var(--danger);
-    }
-    
-    /* Tabs */
-    .stTabs [role="tablist"] {
-        gap: 0.5rem;
-    }
-    
-    .stTabs [role="tab"] {
-        padding: 0.5rem 1rem;
-        border-radius: 8px;
-        background: var(--light);
-        color: var(--dark-light);
-        font-weight: 600;
-        transition: all 0.2s ease;
-    }
-    
-    .stTabs [role="tab"][aria-selected="true"] {
-        background: var(--primary);
-        color: white;
-    }
-    
-    /* Responsive adjustments */
-    @media (max-width: 768px) {
-        .header h1 {
-            font-size: 2rem;
-        }
+    .section-divider {
+        height: 2px;
+        background: linear-gradient(90deg, #3b82f6, #8b5cf6, #06b6d4);
+        margin: 2rem 0;
+        border-radius: 1px;
     }
 </style>
 """, unsafe_allow_html=True)
 
-# Constants
-FUEL_CONSUMPTION_PER_KM = 0.35  # litres per km
-DRIVER_COST_PER_HOUR = 85  # R per hour
-VEHICLE_OPERATING_COST_PER_KM = 4.50  # R per km (maintenance, insurance, depreciation)
-ADMIN_OVERHEAD_PERCENTAGE = 0.08  # 8% for admin costs
-
-def calculate_costs_and_profit(inputs):
-    """Calculate all costs, revenue, and profit metrics"""
-    
-    # Extract inputs
-    distance = float(inputs.get('distance', 0))
-    load = float(inputs.get('load', 0))
-    fuel_price = float(inputs.get('fuel_price', 0))
-    toll_fees = float(inputs.get('toll_fees', 0))
-    turnaround_time = float(inputs.get('turnaround_time', 0))
-    rate_per_ton = float(inputs.get('rate_per_ton', 0))
-    
-    # Calculate costs
-    fuel_cost = distance * FUEL_CONSUMPTION_PER_KM * fuel_price
-    driver_cost = turnaround_time * DRIVER_COST_PER_HOUR
-    vehicle_operating_cost = distance * VEHICLE_OPERATING_COST_PER_KM
-    admin_cost = (fuel_cost + driver_cost + vehicle_operating_cost + toll_fees) * ADMIN_OVERHEAD_PERCENTAGE
-    
-    total_cost = fuel_cost + driver_cost + vehicle_operating_cost + toll_fees + admin_cost
-    
-    # Calculate revenue
-    total_revenue = load * rate_per_ton
-    
-    # Calculate profit metrics
-    profit = total_revenue - total_cost
-    profit_margin = (profit / total_revenue * 100) if total_revenue > 0 else 0
-    
-    # Calculate recommended rates
-    cost_per_ton = total_cost / load if load > 0 else 0
-    recommended_rate_per_ton = cost_per_ton * 1.2  # 20% markup
-    recommended_rate_per_km = total_revenue / distance if distance > 0 else 0
-    
-    return {
-        'fuel_cost': fuel_cost,
-        'driver_cost': driver_cost,
-        'vehicle_operating_cost': vehicle_operating_cost,
-        'toll_fees': toll_fees,
-        'admin_cost': admin_cost,
-        'total_cost': total_cost,
-        'total_revenue': total_revenue,
-        'profit': profit,
-        'profit_margin': profit_margin,
-        'cost_per_ton': cost_per_ton,
-        'recommended_rate_per_ton': recommended_rate_per_ton,
-        'recommended_rate_per_km': recommended_rate_per_km
-    }
-
-def get_cashflow_risk_analysis(payment_terms, profit, total_cost):
-    """Analyze cashflow risk based on payment terms"""
-    
-    risk_levels = {
-        'Cash': {'risk': 'Low', 'color': 'risk-low', 'days': 0},
-        'Daily': {'risk': 'Low', 'color': 'risk-low', 'days': 1},
-        'Weekly': {'risk': 'Medium', 'color': 'risk-medium', 'days': 7},
-        'Monthly': {'risk': 'High', 'color': 'risk-high', 'days': 30}
-    }
-    
-    risk_info = risk_levels.get(payment_terms, risk_levels['Weekly'])
-    
-    # Calculate cash tied up
-    cash_tied_up = total_cost
-    opportunity_cost = cash_tied_up * (0.10 / 365) * risk_info['days']  # 10% annual opportunity cost
-    
-    analysis = {
-        'risk_level': risk_info['risk'],
-        'color': risk_info['color'],
-        'days_to_payment': risk_info['days'],
-        'cash_tied_up': cash_tied_up,
-        'opportunity_cost': opportunity_cost,
-        'adjusted_profit': profit - opportunity_cost
-    }
-    
-    return analysis
-
-def create_excel_export(inputs, results, cashflow_analysis):
-    """Create Excel export of the route analysis"""
-    
-    output = io.BytesIO()
-    
-    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-        # Create summary data
-        summary_data = {
-            'Route Information': [
-                inputs.get('loading_point', ''),
-                inputs.get('offloading_point', ''),
-                f"{inputs.get('distance', 0)} km",
-                f"{inputs.get('load', 0)} tons",
-                f"{inputs.get('turnaround_time', 0)} hours"
-            ],
-            'Financial Summary': [
-                f"R {results['total_revenue']:,.2f}",
-                f"R {results['total_cost']:,.2f}",
-                f"R {results['profit']:,.2f}",
-                f"{results['profit_margin']:.1f}%",
-                cashflow_analysis['risk_level']
-            ]
-        }
-        
-        # Cost breakdown
-        cost_breakdown = {
-            'Cost Item': ['Fuel', 'Driver', 'Vehicle Operating', 'Toll Fees', 'Admin Overhead', 'TOTAL'],
-            'Amount (R)': [
-                results['fuel_cost'],
-                results['driver_cost'],
-                results['vehicle_operating_cost'],
-                results['toll_fees'],
-                results['admin_cost'],
-                results['total_cost']
-            ]
-        }
-        
-        # Write to Excel
-        summary_df = pd.DataFrame(summary_data, index=['Loading Point', 'Offloading Point', 'Distance', 'Load Weight', 'Turnaround Time'])
-        cost_df = pd.DataFrame(cost_breakdown)
-        
-        summary_df.to_excel(writer, sheet_name='Route Analysis', startrow=0)
-        cost_df.to_excel(writer, sheet_name='Route Analysis', startrow=8, index=False)
-        
-        # Format the Excel file
-        workbook = writer.book
-        worksheet = writer.sheets['Route Analysis']
-        
-        # Add formats
-        header_format = workbook.add_format({'bold': True, 'bg_color': '#D7E4BD'})
-        currency_format = workbook.add_format({'num_format': 'R #,##0.00'})
-        
-        worksheet.set_column('A:B', 20)
-        worksheet.set_column('C:C', 15, currency_format)
-    
-    return output.getvalue()
-
-def create_pdf_export(inputs, results, cashflow_analysis):
-    """Create PDF export of the route analysis"""
-    
-    buffer = io.BytesIO()
-    doc = SimpleDocTemplate(buffer, pagesize=letter)
-    styles = getSampleStyleSheet()
-    story = []
-    
-    # Title
-    title_style = ParagraphStyle(
-        'CustomTitle',
-        parent=styles['Heading1'],
-        fontSize=24,
-        textColor=colors.HexColor('#2563eb'),
-        spaceAfter=30
-    )
-    story.append(Paragraph("Route Cost Analysis Report", title_style))
-    story.append(Spacer(1, 12))
-    
-    # Route Information
-    route_data = [
-        ['Route Information', ''],
-        ['Loading Point', inputs.get('loading_point', '')],
-        ['Offloading Point', inputs.get('offloading_point', '')],
-        ['Distance', f"{inputs.get('distance', 0)} km"],
-        ['Load Weight', f"{inputs.get('load', 0)} tons"],
-        ['Turnaround Time', f"{inputs.get('turnaround_time', 0)} hours"],
-        ['Rate per Ton', f"R {inputs.get('rate_per_ton', 0):.2f}"],
-        ['Payment Terms', inputs.get('payment_terms', '')]
-    ]
-    
-    route_table = Table(route_data, colWidths=[2*inch, 3*inch])
-    route_table.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#2563eb')),
-        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 0), (-1, 0), 14),
-        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-        ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
-        ('GRID', (0, 0), (-1, -1), 1, colors.black)
-    ]))
-    
-    story.append(route_table)
-    story.append(Spacer(1, 20))
-    
-    # Financial Summary
-    financial_data = [
-        ['Financial Summary', ''],
-        ['Total Revenue', f"R {results['total_revenue']:,.2f}"],
-        ['Total Cost', f"R {results['total_cost']:,.2f}"],
-        ['Profit/Loss', f"R {results['profit']:,.2f}"],
-        ['Profit Margin', f"{results['profit_margin']:.1f}%"],
-        ['Cashflow Risk', cashflow_analysis['risk_level']]
-    ]
-    
-    financial_table = Table(financial_data, colWidths=[2*inch, 3*inch])
-    financial_table.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#10b981')),
-        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 0), (-1, 0), 14),
-        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-        ('BACKGROUND', (0, 1), (-1, -1), colors.lightgrey),
-        ('GRID', (0, 0), (-1, -1), 1, colors.black)
-    ]))
-    
-    story.append(financial_table)
-    story.append(Spacer(1, 20))
-    
-    # Cost Breakdown
-    cost_data = [
-        ['Cost Breakdown', 'Amount (R)'],
-        ['Fuel Cost', f"R {results['fuel_cost']:,.2f}"],
-        ['Driver Cost', f"R {results['driver_cost']:,.2f}"],
-        ['Vehicle Operating', f"R {results['vehicle_operating_cost']:,.2f}"],
-        ['Toll Fees', f"R {results['toll_fees']:,.2f}"],
-        ['Admin Overhead', f"R {results['admin_cost']:,.2f}"],
-        ['TOTAL COST', f"R {results['total_cost']:,.2f}"]
-    ]
-    
-    cost_table = Table(cost_data, colWidths=[2*inch, 3*inch])
-    cost_table.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#ef4444')),
-        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 0), (-1, 0), 14),
-        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-        ('BACKGROUND', (0, 1), (-1, -2), colors.lightblue),
-        ('BACKGROUND', (0, -1), (-1, -1), colors.yellow),
-        ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
-        ('GRID', (0, 0), (-1, -1), 1, colors.black)
-    ]))
-    
-    story.append(cost_table)
-    
-    # Build PDF
-    doc.build(story)
-    buffer.seek(0)
-    return buffer.getvalue()
-
-# Main App
 def main():
-    # Header section
-    st.markdown("""
-    <div class="header">
-        <div class="header-content">
-            <h1>Route Cost Estimator</h1>
-            <p>Plan smarter transport routes with instant cost estimates, profit analysis, and dynamic what-if simulations</p>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
+    # Header
+    st.markdown('<h1 class="main-header">🚛 LOI Profitability Calculator</h1>', unsafe_allow_html=True)
+    st.markdown('<p style="text-align: center; color: #6b7280; font-size: 1.2rem;">Make informed decisions before accepting your next job</p>', unsafe_allow_html=True)
     
-    # Main layout
-    col1, col2 = st.columns([1, 2], gap="large")
+    st.markdown('<div class="section-divider"></div>', unsafe_allow_html=True)
     
-    with col1:
-        # Sidebar container with compact styling
-        st.markdown("""
-        <style>
-            .sidebar-section {
-                margin-bottom: 0.5rem;
-            }
-            .sidebar-section h3 {
-                margin-bottom: 0.5rem;
-                font-size: 1rem;
-            }
-            .stTextInput, .stNumberInput, .stSelectbox {
-                margin-bottom: 0.5rem;
-            }
-        </style>
-        """, unsafe_allow_html=True)
+    # Sidebar for inputs
+    with st.sidebar:
+        st.header("📝 Job Details")
         
-        # Route Information - compact section
-        with st.container():
-            st.markdown("### Route Information", help="Details about the transportation route")
-            cols = st.columns(2)
-            with cols[0]:
-                loading_point = st.text_input("Loading Point", placeholder="e.g., Johannesburg", key="loading_point")
-            with cols[1]:
-                offloading_point = st.text_input("Offloading Point", placeholder="e.g., Cape Town", key="offloading_point")
-            distance = st.number_input("Distance (km)", min_value=0.0, step=1.0, help="Total distance for the trip", key="distance")
+        # Route Information
+        st.subheader("🗺️ Route Information")
+        loading_point = st.text_input(
+            "Loading Point",
+            placeholder="e.g., Johannesburg",
+            help="Starting location for pickup"
+        )
         
-        # Load Information - compact section
-        with st.container():
-            st.markdown("### Load Information", help="Details about the cargo")
-            load = st.number_input("Load Weight (tons)", min_value=0.0, step=0.1, help="Weight of cargo in tons", key="load")
+        offloading_point = st.text_input(
+            "Offloading Point", 
+            placeholder="e.g., Cape Town",
+            help="Destination for delivery"
+        )
         
-        # Cost Inputs - compact section
-        with st.container():
-            st.markdown("### Cost Parameters", help="Cost factors for the trip")
-            cols = st.columns(2)
-            with cols[0]:
-                fuel_price = st.number_input("Fuel Price (R/litre)", min_value=0.0, value=23.50, step=0.10, key="fuel_price")
-            with cols[1]:
-                toll_fees = st.number_input("Toll Fees (R)", min_value=0.0, step=1.0, help="Total toll costs", key="toll_fees")
-            turnaround_time = st.number_input("Turnaround Time (hours)", min_value=0.0, step=0.5, help="Total time including loading, driving, offloading", key="turnaround_time")
+        distance = st.number_input(
+            "Distance (one-way km)",
+            min_value=1,
+            value=500,
+            help="One-way distance in kilometers"
+        )
         
-        # Revenue Parameters - compact section
-        with st.container():
-            st.markdown("### Revenue Parameters", help="Revenue and payment details")
-            rate_per_ton = st.number_input("Rate per Ton (R/ton)", min_value=0.0, step=1.0, help="Charging rate per ton", key="rate_per_ton")
-            payment_terms = st.selectbox("Payment Terms", ["Cash", "Daily", "Weekly", "Monthly"], key="payment_terms")
+        # Financial Inputs
+        st.subheader("💰 Financial Details")
+        rate_per_ton = st.number_input(
+            "Rate per Ton (ZAR)",
+            min_value=0.0,
+            value=150.0,
+            step=10.0,
+            help="How much you'll be paid per ton of cargo"
+        )
         
-        # Calculate button with better spacing
-        st.markdown("<div style='margin-top: 1.5rem;'>", unsafe_allow_html=True)
-        calculate_button = st.button("Calculate Route Economics", type="primary", use_container_width=True)
+        fuel_price = st.number_input(
+            "Fuel Price per Litre (ZAR)",
+            min_value=0.0,
+            value=23.50,
+            step=0.10,
+            help="Current fuel price per litre"
+        )
         
+        toll_fees = st.number_input(
+            "Toll Fees (ZAR)",
+            min_value=0.0,
+            value=500.0,
+            step=50.0,
+            help="Total toll fees for the route"
+        )
+        
+        # Operational Inputs
+        st.subheader("⚙️ Operations")
+        loads_per_day = st.number_input(
+            "Loads per Day",
+            min_value=1,
+            max_value=10,
+            value=1,
+            help="How many loads you can complete per day"
+        )
+        
+        payment_terms = st.selectbox(
+            "Payment Terms",
+            [30, 45, 60, 90],
+            help="Days until payment is received"
+        )
+        
+        # Advanced Settings
+        with st.expander("🔧 Advanced Settings"):
+            truck_capacity = st.number_input("Truck Capacity (tons)", value=34.0, help="Maximum payload capacity")
+            fuel_efficiency = st.number_input("Fuel Efficiency (km/L)", value=3.5, help="Kilometers per litre")
+            driver_cost_per_day = st.number_input("Driver Cost per Day (ZAR)", value=800.0)
+            maintenance_per_km = st.number_input("Maintenance per KM (ZAR)", value=2.50)
+            insurance_per_day = st.number_input("Insurance per Day (ZAR)", value=300.0)
     
     # Main content area
-    with col2:
-        if calculate_button and all([distance, load, fuel_price, turnaround_time, rate_per_ton]):
-            # Prepare inputs
-            inputs = {
-                'loading_point': loading_point,
-                'offloading_point': offloading_point,
-                'distance': distance,
-                'load': load,
-                'fuel_price': fuel_price,
-                'toll_fees': toll_fees,
-                'turnaround_time': turnaround_time,
-                'rate_per_ton': rate_per_ton,
-                'payment_terms': payment_terms
-            }
+    col1, col2 = st.columns([2, 1])
+    
+    with col1:
+        if st.button("🔍 Calculate Profitability", type="primary", use_container_width=True):
+            # Calculations (placeholder logic - you'll implement the actual engine)
             
-            # Calculate results
-            results = calculate_costs_and_profit(inputs)
-            cashflow_analysis = get_cashflow_risk_analysis(payment_terms, results['profit'], results['total_cost'])
+            # Revenue calculations
+            revenue_per_trip = rate_per_ton * truck_capacity
+            daily_revenue = revenue_per_trip * loads_per_day
+            
+            # Cost calculations
+            fuel_cost_per_trip = (distance * 2 / fuel_efficiency) * fuel_price  # Round trip
+            total_variable_cost_per_trip = fuel_cost_per_trip + toll_fees + (maintenance_per_km * distance * 2)
+            fixed_cost_per_day = driver_cost_per_day + insurance_per_day
+            total_cost_per_trip = total_variable_cost_per_trip + (fixed_cost_per_day / loads_per_day)
+            daily_total_cost = total_cost_per_trip * loads_per_day
+            
+            # Profitability
+            profit_per_trip = revenue_per_trip - total_cost_per_trip
+            daily_profit = daily_revenue - daily_total_cost
+            
+            cost_per_km = total_cost_per_trip / (distance * 2)
+            breakeven_rate = total_cost_per_trip / truck_capacity
             
             # Display results
-            st.markdown("## Route Analysis Results")
+            st.subheader("📊 Profitability Analysis")
             
-            # Metrics grid
-            col1, col2, col3, col4 = st.columns(4)
+            # Key metrics in cards
+            metric_cols = st.columns(4)
             
-            with col1:
-                st.markdown(f"""
-                <div class="metric">
-                    <div class="metric-value">R {results['total_revenue']:,.2f}</div>
-                    <div class="metric-label">Total Revenue</div>
+            with metric_cols[0]:
+                profit_class = "profit-positive" if profit_per_trip > 0 else "profit-negative"
+                st.markdown(f'''
+                <div class="metric-card {profit_class}">
+                    <h3>Profit per Trip</h3>
+                    <h2>R {profit_per_trip:,.2f}</h2>
+                    <p>{"✅ Profitable" if profit_per_trip > 0 else "❌ Loss"}</p>
                 </div>
-                """, unsafe_allow_html=True)
+                ''', unsafe_allow_html=True)
             
-            with col2:
-                st.markdown(f"""
-                <div class="metric">
-                    <div class="metric-value">R {results['total_cost']:,.2f}</div>
-                    <div class="metric-label">Total Cost</div>
+            with metric_cols[1]:
+                profit_class = "profit-positive" if daily_profit > 0 else "profit-negative"
+                st.markdown(f'''
+                <div class="metric-card {profit_class}">
+                    <h3>Daily Profit</h3>
+                    <h2>R {daily_profit:,.2f}</h2>
+                    <p>{loads_per_day} loads/day</p>
                 </div>
-                """, unsafe_allow_html=True)
+                ''', unsafe_allow_html=True)
             
-            with col3:
-                profit_class = "profit-positive" if results['profit'] >= 0 else "profit-negative"
-                st.markdown(f"""
-                <div class="metric">
-                    <div class="metric-value {profit_class}">R {results['profit']:,.2f}</div>
-                    <div class="metric-label">Profit/Loss</div>
+            with metric_cols[2]:
+                st.markdown(f'''
+                <div class="metric-card">
+                    <h3>Cost per KM</h3>
+                    <h2>R {cost_per_km:.2f}</h2>
+                    <p>Total operating cost</p>
                 </div>
-                """, unsafe_allow_html=True)
+                ''', unsafe_allow_html=True)
             
-            with col4:
-                st.markdown(f"""
-                <div class="metric">
-                    <div class="metric-value">
-                        <span class="{cashflow_analysis['color']}">
-                            {cashflow_analysis['risk_level']}
-                        </span>
-                    </div>
-                    <div class="metric-label">Cashflow Risk</div>
+            with metric_cols[3]:
+                st.markdown(f'''
+                <div class="metric-card">
+                    <h3>Breakeven Rate</h3>
+                    <h2>R {breakeven_rate:.2f}</h2>
+                    <p>per ton</p>
                 </div>
-                """, unsafe_allow_html=True)
+                ''', unsafe_allow_html=True)
             
-            # Detailed analysis
-            with st.container():
-                st.markdown("### Cost Breakdown")
-                cost_breakdown = pd.DataFrame({
-                    'Cost Item': ['Fuel', 'Driver', 'Vehicle Operating', 'Toll Fees', 'Admin Overhead'],
-                    'Amount (R)': [
-                        results['fuel_cost'],
-                        results['driver_cost'],
-                        results['vehicle_operating_cost'],
-                        results['toll_fees'],
-                        results['admin_cost']
-                    ]
-                })
-                
-                st.dataframe(cost_breakdown, use_container_width=True, hide_index=True)
-                
-                st.markdown(f"""
-                <div style="margin-top: 1rem; font-weight: 700; text-align: right;">
-                    Total Cost: R {results['total_cost']:,.2f}
-                </div>
-                """, unsafe_allow_html=True)
+            # Detailed breakdown
+            st.subheader("💼 Cost Breakdown")
             
-            # Profit Analysis
-            with st.container():
-                st.markdown("### Profit Analysis")
-                if results['profit'] >= 0:
-                    st.markdown(f"""
-                    <div class="alert alert-success">
-                        <i class="fas fa-check-circle" style="font-size: 1.5rem;"></i>
-                        <div>
-                            <h4>Profitable Route</h4>
-                            <p>Profit: R {results['profit']:,.2f} ({results['profit_margin']:.1f}% margin)</p>
-                            <p>Cost per Ton: R {results['cost_per_ton']:,.2f}</p>
-                        </div>
-                    </div>
-                    """, unsafe_allow_html=True)
-                else:
-                    st.markdown(f"""
-                    <div class="alert alert-warning">
-                        <i class="fas fa-exclamation-triangle" style="font-size: 1.5rem;"></i>
-                        <div>
-                            <h4>Loss-Making Route</h4>
-                            <p>Loss: R {abs(results['profit']):,.2f}</p>
-                            <p>Recommended Rate: R {results['recommended_rate_per_ton']:,.2f}/ton</p>
-                            <p>Current Rate: R {rate_per_ton:,.2f}/ton</p>
-                        </div>
-                    </div>
-                    """, unsafe_allow_html=True)
-            
-            # Cashflow Analysis
-            with st.container():
-                st.markdown("### Cashflow Risk Analysis")
-                
-                col1, col2, col3 = st.columns(3)
-                
-                with col1:
-                    st.markdown(f"""
-                    <div class="metric">
-                        <div class="metric-value">{cashflow_analysis['days_to_payment']}</div>
-                        <div class="metric-label">Days to Payment</div>
-                    </div>
-                    """, unsafe_allow_html=True)
-                
-                with col2:
-                    st.markdown(f"""
-                    <div class="metric">
-                        <div class="metric-value">R {cashflow_analysis['cash_tied_up']:,.2f}</div>
-                        <div class="metric-label">Cash Tied Up</div>
-                    </div>
-                    """, unsafe_allow_html=True)
-                
-                with col3:
-                    st.markdown(f"""
-                    <div class="metric">
-                        <div class="metric-value">R {cashflow_analysis['opportunity_cost']:,.2f}</div>
-                        <div class="metric-label">Opportunity Cost</div>
-                    </div>
-                    """, unsafe_allow_html=True)
-            
-            # Export Options
-            st.markdown("### Export Options")
-            col1, col2 = st.columns(2)
-            
-            with col1:
-                # Excel Export
-                excel_data = create_excel_export(inputs, results, cashflow_analysis)
-                st.download_button(
-                    label="Download Excel Report",
-                    data=excel_data,
-                    file_name=f"route_analysis_{datetime.now().strftime('%Y%m%d_%H%M')}.xlsx",
-                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                    use_container_width=True
-                )
-            
-            with col2:
-                # PDF Export
-                pdf_data = create_pdf_export(inputs, results, cashflow_analysis)
-                st.download_button(
-                    label="Download PDF Report",
-                    data=pdf_data,
-                    file_name=f"route_analysis_{datetime.now().strftime('%Y%m%d_%H%M')}.pdf",
-                    mime="application/pdf",
-                    use_container_width=True
-                )
-            
-            # Store results in session state for persistence
-            st.session_state['last_results'] = {
-                'inputs': inputs,
-                'results': results,
-                'cashflow_analysis': cashflow_analysis
+            breakdown_data = {
+                'Cost Category': [
+                    'Fuel Cost',
+                    'Toll Fees', 
+                    'Maintenance',
+                    'Driver Cost (per trip)',
+                    'Insurance (per trip)',
+                    'Total Cost per Trip'
+                ],
+                'Amount (ZAR)': [
+                    fuel_cost_per_trip,
+                    toll_fees,
+                    maintenance_per_km * distance * 2,
+                    driver_cost_per_day / loads_per_day,
+                    insurance_per_day / loads_per_day,
+                    total_cost_per_trip
+                ]
             }
-        
-        elif calculate_button:
-            st.error("⚠️ Please fill in all required fields: Distance, Load Weight, Fuel Price, Turnaround Time, and Rate per Ton")
-        
-        else:
-            # Show welcome message and instructions
-            st.markdown("""
-            <div style="text-align: center; margin: 2rem 0;">
-                <h2>Welcome to Route Cost Estimator</h2>
-                <p>Your logistics profit calculator in your pocket! Whether you're quoting on WhatsApp or in the field, 
-                you'll know your numbers, risks, and upside before you move a single load.</p>
-            </div>
             
-            <div class="card">
-                <h3>How to Use:</h3>
-                <ol>
-                    <li>Enter route details in the sidebar (loading/offloading points, distance)</li>
-                    <li>Add load information (weight in tons)</li>
-                    <li>Input cost parameters (fuel price, tolls, turnaround time)</li>
-                    <li>Set revenue parameters (your rate per ton, payment terms)</li>
-                    <li>Click Calculate to see instant profit analysis</li>
-                </ol>
-            </div>
+            df_breakdown = pd.DataFrame(breakdown_data)
+            st.dataframe(df_breakdown, use_container_width=True)
             
-            <div class="card">
-                <h3>Sample Calculation:</h3>
-                <p><strong>Example Route: Johannesburg to Cape Town</strong></p>
-                <ul>
-                    <li>Distance: 1,400 km</li>
-                    <li>Load: 25 tons</li>
-                    <li>Fuel Price: R 23.50/litre</li>
-                    <li>Toll Fees: R 850</li>
-                    <li>Turnaround Time: 36 hours</li>
-                    <li>Rate: R 450/ton</li>
-                    <li>Payment Terms: Weekly</li>
-                </ul>
-                <p><strong>Results:</strong></p>
-                <ul>
-                    <li>Revenue: R 11,250</li>
-                    <li>Total Cost: R 9,456</li>
-                    <li>Profit: R 1,794 (15.9% margin)</li>
-                    <li>Cashflow Risk: Medium</li>
-                </ul>
-            </div>
-            """, unsafe_allow_html=True)
+            # Cash Flow Timeline
+            st.subheader("💹 Cash Flow Timeline")
+            
+            # Generate cash flow data
+            payment_date = datetime.now() + timedelta(days=payment_terms)
+            
+            cash_flow_data = []
+            for i in range(payment_terms + 30):  # Show 30 days after payment
+                date = datetime.now() + timedelta(days=i)
+                if i == 0:
+                    cash_flow = -daily_total_cost  # Initial expense
+                elif i == payment_terms:
+                    cash_flow = daily_revenue  # Payment received
+                else:
+                    cash_flow = 0
+                
+                cumulative = sum([cf['Daily Cash Flow'] for cf in cash_flow_data]) + cash_flow
+                
+                cash_flow_data.append({
+                    'Date': date,
+                    'Daily Cash Flow': cash_flow,
+                    'Cumulative Cash Flow': cumulative
+                })
+            
+            df_cashflow = pd.DataFrame(cash_flow_data)
+            
+            fig = px.line(df_cashflow, x='Date', y='Cumulative Cash Flow', 
+                         title='Cash Flow Projection')
+            fig.add_hline(y=0, line_dash="dash", line_color="red")
+            fig.update_layout(height=400)
+            st.plotly_chart(fig, use_container_width=True)
+            
+            # Recommendations
+            st.subheader("💡 Recommendations")
+            
+            if profit_per_trip > 0:
+                st.success("✅ This job appears profitable! Consider accepting this LOI.")
+                if profit_per_trip < 1000:
+                    st.warning("⚠️ Profit margin is low. Consider negotiating a higher rate or reducing costs.")
+            else:
+                st.error("❌ This job will result in a loss. Consider:")
+                st.write("- Negotiating a higher rate (minimum R{:.2f} per ton)".format(breakeven_rate))
+                st.write("- Finding ways to reduce operational costs")
+                st.write("- Looking for return loads to improve efficiency")
+    
+    with col2:
+        st.subheader("ℹ️ Quick Tips")
+        
+        st.markdown('''
+        <div class="info-box">
+            <h4>💡 Rate Negotiation</h4>
+            <p>Your breakeven rate is your minimum acceptable rate per ton. Always aim higher to ensure profitability.</p>
+        </div>
+        ''', unsafe_allow_html=True)
+        
+        st.markdown('''
+        <div class="info-box">
+            <h4>⛽ Fuel Efficiency</h4>
+            <p>Improving fuel efficiency by just 0.5 km/L can significantly impact profitability on long routes.</p>
+        </div>
+        ''', unsafe_allow_html=True)
+        
+        st.markdown('''
+        <div class="info-box">
+            <h4>💰 Payment Terms</h4>
+            <p>Longer payment terms require more working capital. Factor this into your cash flow planning.</p>
+        </div>
+        ''', unsafe_allow_html=True)
+        
+        st.markdown('''
+        <div class="info-box">
+            <h4>🔄 Return Loads</h4>
+            <p>Finding return loads can double your revenue while only increasing costs marginally.</p>
+        </div>
+        ''', unsafe_allow_html=True)
 
 if __name__ == "__main__":
     main()
